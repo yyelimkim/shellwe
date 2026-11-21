@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Shellwe — Leg Press</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #eef0f2; font-family: system-ui, sans-serif; overflow: hidden; }
+    canvas { display: block; touch-action: none; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    #hint { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); font-size: 12px; color: #8a8f96; letter-spacing: .02em; pointer-events: none; }
+  </style>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <div id="hint">drag to rotate · scroll to zoom</div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.prepend(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xeef0f2);
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.03).texture;
+
+    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.01, 100);
+    camera.position.set(3.4, 2.3, 4.2);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.maxPolarAngle = Math.PI / 2 - 0.03;
+    controls.minDistance = 2;
+    controls.maxDistance = 12;
+    controls.target.set(0, 1.0, 0);
+
+    // ---- lights ----
+    const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+    sun.position.set(4, 6, 3);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near = 1; sun.shadow.camera.far = 25;
+    sun.shadow.camera.left = -6; sun.shadow.camera.right = 6;
+    sun.shadow.camera.top = 6; sun.shadow.camera.bottom = -6;
+    sun.shadow.bias = -0.0003;
+    scene.add(sun);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x9099a2, 0.6));
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, 40),
+      new THREE.ShadowMaterial({ opacity: 0.22 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // ---- materials ----
+    const matFrame   = new THREE.MeshStandardMaterial({ color: 0x1f2a36, metalness: 0.5, roughness: 0.5 }); // charcoal steel
+    const matAccent  = new THREE.MeshStandardMaterial({ color: 0xc8102e, metalness: 0.4, roughness: 0.45 }); // red accents
+    const matChrome  = new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 1.0, roughness: 0.18 }); // guide rods
+    const matPad     = new THREE.MeshStandardMaterial({ color: 0x15171a, metalness: 0.0, roughness: 0.85 }); // upholstery
+    const matPlate   = new THREE.MeshStandardMaterial({ color: 0x2b2f34, metalness: 0.65, roughness: 0.4 }); // weight plates
+    const matFoot    = new THREE.MeshStandardMaterial({ color: 0x3a3f45, metalness: 0.3, roughness: 0.7 });  // footplate
+    const matRubber  = new THREE.MeshStandardMaterial({ color: 0x0d0e10, metalness: 0.0, roughness: 0.95 }); // feet/grips
+
+    const machine = new THREE.Group();
+    scene.add(machine);
+
+    // helpers
+    function box(w, h, d, mat, x=0, y=0, z=0) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+      m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true;
+      return m;
+    }
+    function tube(r, len, mat, axis='y') {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 24), mat);
+      if (axis === 'x') m.rotation.z = Math.PI / 2;
+      if (axis === 'z') m.rotation.x = Math.PI / 2;
+      m.castShadow = true; m.receiveShadow = true;
+      return m;
+    }
+
+    // ===== BASE FRAME (runs front-to-back along +Z toward the seat) =====
+    const base = new THREE.Group(); machine.add(base);
+    // two long floor rails
+    for (const x of [-0.7, 0.7]) {
+      const rail = box(0.18, 0.16, 4.6, matFrame, x, 0.08, 0.2);
+      base.add(rail);
+      // rubber feet
+      base.add(box(0.26, 0.06, 0.26, matRubber, x, 0.03, -1.9));
+      base.add(box(0.26, 0.06, 0.26, matRubber, x, 0.03, 2.3));
+    }
+    // front cross member
+    base.add(box(1.7, 0.16, 0.2, matFrame, 0, 0.08, -2.0));
+
+    // ===== ANGLED SLED RAILS (45°) rising toward the back-top =====
+    // The carriage travels along these. Define an incline group.
+    const incline = new THREE.Group();
+    incline.position.set(0, 0.16, -1.7);
+    incline.rotation.x = -THREE.MathUtils.degToRad(45); // tilt so +Y of group goes up-and-back
+    machine.add(incline);
+
+    const RAIL_LEN = 3.4;
+    for (const x of [-0.62, 0.62]) {
+      // main square rail
+      const r = box(0.16, RAIL_LEN, 0.16, matFrame, x, RAIL_LEN/2, 0);
+      incline.add(r);
+      // chrome guide rod the carriage slides on
+      const rod = tube(0.045, RAIL_LEN - 0.2, matChrome, 'y');
+      rod.position.set(x, RAIL_LEN/2, 0.16);
+      incline.add(rod);
+    }
+    // rail top cross brace + back support legs
+    incline.add(box(1.5, 0.16, 0.16, matFrame, 0, RAIL_LEN - 0.1, 0));
+    incline.add(box(1.5, 0.16, 0.16, matFrame, 0, 0.6, 0));
+    // red accent diagonal on the top brace
+    const topCap = box(1.52, 0.2, 0.3, matAccent, 0, RAIL_LEN - 0.1, -0.12);
+    incline.add(topCap);
+
+    // vertical back legs supporting the top of the incline
+    const backLeg = new THREE.Group(); machine.add(backLeg);
+    for (const x of [-0.62, 0.62]) {
+      backLeg.add(box(0.16, 2.95, 0.16, matFrame, x, 1.48, 0.72));
+    }
+    backLeg.add(box(1.5, 0.16, 0.16, matFrame, 0, 2.9, 0.72)); // top tie
+
+    // ===== CARRIAGE / FOOTPLATE (slides along incline local +Y) =====
+    const carriage = new THREE.Group();
+    incline.add(carriage);
+    // carriage back structure
+    carriage.add(box(1.5, 0.12, 0.5, matFrame, 0, 0, 0.1));
+    // big footplate (angled slightly so it faces the user)
+    const footplate = new THREE.Group();
+    footplate.position.set(0, 0, 0.42);
+    const fp = box(1.5, 1.3, 0.1, matFoot, 0, 0.1, 0);
+    footplate.add(fp);
+    // grip texture ridges on footplate
+    for (let i = -5; i <= 5; i++) {
+      footplate.add(box(1.4, 0.03, 0.03, matRubber, 0, 0.1 + i*0.1, 0.06));
+    }
+    // footplate frame border
+    footplate.add(box(1.56, 0.06, 0.14, matAccent, 0, 0.76, 0));
+    footplate.add(box(1.56, 0.06, 0.14, matAccent, 0, -0.56, 0));
+    carriage.add(footplate);
+
+    // weight-loading posts (horns) on the carriage sides
+    for (const x of [-0.95, 0.95]) {
+      const horn = tube(0.06, 0.7, matChrome, 'z');
+      horn.position.set(x, 0.0, -0.1);
+      carriage.add(horn);
+      // stack of plates loaded (largest inner, smaller outer)
+      const radii = [0.36, 0.36, 0.3, 0.24];
+      radii.forEach((r, i) => {
+        const plate = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.07, 36), matPlate);
+        plate.rotation.x = Math.PI / 2;
+        plate.position.set(x + Math.sign(x) * 0.02, 0.0, -0.08 - i*0.085);
+        plate.castShadow = true; plate.receiveShadow = true;
+        carriage.add(plate);
+      });
+    }
+
+    // ===== SEAT ASSEMBLY (low, at the front/base, reclined) =====
+    const seat = new THREE.Group();
+    seat.position.set(0, 0.55, 1.45);
+    machine.add(seat);
+    // seat mount frame
+    seat.add(box(0.5, 0.5, 0.5, matFrame, 0, -0.3, 0));
+    // seat cushion (slightly tilted)
+    const seatPad = box(1.25, 0.18, 1.0, matPad, 0, 0, 0);
+    seatPad.rotation.x = THREE.MathUtils.degToRad(8);
+    seat.add(seatPad);
+    // backrest (reclined ~50°)
+    const back = new THREE.Group();
+    back.position.set(0, 0.05, 0.55);
+    back.rotation.x = THREE.MathUtils.degToRad(52);
+    const backPad = box(1.2, 1.5, 0.2, matPad, 0, 0.6, 0);
+    back.add(backPad);
+    // red side bolsters on backrest
+    back.add(box(0.12, 1.5, 0.26, matAccent, -0.62, 0.6, 0));
+    back.add(box(0.12, 1.5, 0.26, matAccent,  0.62, 0.6, 0));
+    seat.add(back);
+    // handles beside the seat
+    for (const x of [-0.72, 0.72]) {
+      const handle = tube(0.05, 0.9, matFrame, 'z');
+      handle.position.set(x, 0.35, 0.3);
+      handle.rotation.x = THREE.MathUtils.degToRad(20);
+      seat.add(handle);
+      const grip = tube(0.06, 0.4, matRubber, 'z');
+      grip.position.set(x, 0.52, 0.12);
+      grip.rotation.x = THREE.MathUtils.degToRad(20);
+      seat.add(grip);
+    }
+
+    // ---- center & seat the whole machine on the floor, normalize size ----
+    let bbox = new THREE.Box3().setFromObject(machine);
+    const size = bbox.getSize(new THREE.Vector3());
+    const scale = 2.6 / Math.max(size.x, size.y, size.z);
+    machine.scale.setScalar(scale);
+    bbox = new THREE.Box3().setFromObject(machine);
+    const c = bbox.getCenter(new THREE.Vector3());
+    machine.position.x -= c.x;
+    machine.position.z -= c.z;
+    machine.position.y -= bbox.min.y;
+    const topY = new THREE.Box3().setFromObject(machine).getSize(new THREE.Vector3()).y;
+    controls.target.set(0, topY * 0.42, 0);
+
+    // ---- gentle sled press animation (shows the movement) ----
+    let t = 0;
+    renderer.setAnimationLoop(() => {
+      t += 0.012;
+      const press = (Math.sin(t) * 0.5 + 0.5);      // 0..1
+      carriage.position.y = 0.55 + press * 1.7;       // slide up the incline rails
+      controls.update();
+      renderer.render(scene, camera);
+    });
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>

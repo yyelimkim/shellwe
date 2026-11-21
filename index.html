@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Shellwe — Leg Press</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #f2f2f2; font-family: system-ui, sans-serif; overflow: hidden; }
+    canvas { display: block; touch-action: none; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    #msg { position: fixed; inset: 0; display: grid; place-items: center; color: #666; font-size: 14px; pointer-events: none; text-align: center; padding: 16px; }
+    #credit { position: fixed; left: 12px; bottom: 10px; font-size: 11px; color: #888; }
+    #credit a { color: inherit; }
+    #pick { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 4px; background: #fff; border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    #pick a { padding: 6px 12px; border-radius: 999px; font-size: 13px; color: #555; text-decoration: none; white-space: nowrap; }
+    #pick a[aria-current] { background: #111; color: #fff; }
+  </style>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <div id="msg">Loading…</div>
+  <nav id="pick"></nav>
+  <div id="credit"></div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+    // SketchUp conversions arrive as thousands of tiny meshes; merge them per material
+    // so phones draw a handful of objects instead of thousands.
+    function mergeByMaterial(root) {
+      root.updateMatrixWorld(true);
+      const groups = new Map();
+      root.traverse((o) => {
+        if (!o.isMesh || o.isSkinnedMesh || Array.isArray(o.material)) return;
+        const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
+        for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+        if (!g.attributes.normal) g.computeVertexNormals();
+        const key = o.material.uuid + '|' + Object.keys(g.attributes).sort().join(',') + '|' + !!g.index;
+        if (!groups.has(key)) groups.set(key, { material: o.material, geos: [] });
+        groups.get(key).geos.push(g);
+      });
+      const merged = new THREE.Group();
+      for (const { material, geos } of groups.values()) {
+        const geo = mergeGeometries(geos, false);
+        if (geo) merged.add(new THREE.Mesh(geo, material));
+      }
+      return merged;
+    }
+
+    // Machines: open with ?m=<id> (one URL per machine, for its NFC sticker)
+    const MODELS = {
+      'leg-press': {
+        name: 'Leg Press', url: 'models/leg-press/scene.gltf',
+        credit: 'Based on “<a href="https://sketchfab.com/3d-models/leg-press-machine-99b9c28dd70d4131918d23f0b58cb14a" target="_blank" rel="noopener">Leg Press Machine</a>” by <a href="https://sketchfab.com/silentsheri" target="_blank" rel="noopener">silentsheri</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>',
+      },
+      'smith-machine': {
+        name: 'Smith Machine', url: 'models/smith-machine/smith-machine.glb',
+        credit: 'Smith Machine model from SketchUp 3D Warehouse',
+      },
+      'lat-pulldown': {
+        name: 'Lat Pulldown', url: 'models/lat-pulldown/lat-pulldown.glb',
+        credit: 'Lat Pulldown model from SketchUp 3D Warehouse',
+      },
+    };
+    const id = MODELS[new URLSearchParams(location.search).get('m')] ? new URLSearchParams(location.search).get('m') : 'leg-press';
+    const MODEL = MODELS[id];
+    const MODEL_URL = MODEL.url;
+    document.title = `Shellwe — ${MODEL.name}`;
+    document.getElementById('credit').innerHTML = MODEL.credit;
+    document.getElementById('pick').innerHTML = Object.entries(MODELS)
+      .map(([k, m]) => `<a href="?m=${k}"${k === id ? ' aria-current="page"' : ''}>${m.name}</a>`).join('');
+    const msg = document.getElementById('msg');
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.prepend(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const BG = new THREE.Color(0xf2f2f2);
+    // background is composited in the outline pass (see bg uniform)
+    scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.05, 60);
+
+    // ---------- Monotone palette: every surface snaps to white, light gray or black ----------
+    const TONES = { white: [0xf4, 0xf4, 0xf4], gray: [0xc2, 0xc2, 0xc2], black: [0x1c, 0x1c, 0x1c] };
+    const DARK = 0.24, LIGHT = 0.6;                    // sRGB luminance cut points
+    const tone = (l) => l < DARK ? TONES.black : l < LIGHT ? TONES.gray : TONES.white;
+    const lum = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+    function monoTexture(tex, tint) {
+      const img = tex.image, w = img.width, h = img.height;
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d', { willReadFrequently: true });
+      ctx.filter = 'blur(2px)';                        // soften grime so it doesn't speckle into dots
+      ctx.drawImage(img, 0, 0);
+      const px = ctx.getImageData(0, 0, w, h), d = px.data;
+      const tones = new Array(d.length / 4);
+      const count = new Map();
+      for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+        const t = tone(lum(d[i] / 255 * tint.r, d[i + 1] / 255 * tint.g, d[i + 2] / 255 * tint.b));
+        tones[j] = t; count.set(t, (count.get(t) || 0) + 1);
+      }
+      // A texture that is mostly one tone (e.g. grungy metal) becomes that tone flat,
+      // so dirt specks don't turn into blotches. Mixed atlases keep per-area tones.
+      const [dominant, n] = [...count].sort((a, b) => b[1] - a[1])[0];
+      const flat = n / tones.length >= 0.7 ? dominant : null;
+      for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+        const t = flat || tones[j];
+        d[i] = t[0]; d[i + 1] = t[1]; d[i + 2] = t[2];
+      }
+      ctx.filter = 'none';
+      ctx.putImageData(px, 0, 0);
+      const out = new THREE.CanvasTexture(cv);
+      for (const k of ['flipY', 'wrapS', 'wrapT', 'channel', 'rotation', 'magFilter', 'minFilter']) out[k] = tex[k];
+      out.repeat.copy(tex.repeat); out.offset.copy(tex.offset); out.center.copy(tex.center);
+      out.colorSpace = THREE.SRGBColorSpace;
+      out.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return out;
+    }
+
+    const monoCache = new Map();
+    function toMono(m) {
+      if (monoCache.has(m.uuid)) return monoCache.get(m.uuid);
+      const tint = (m.color ? m.color.clone() : new THREE.Color(1, 1, 1)).convertLinearToSRGB();
+      const mono = new THREE.MeshStandardMaterial({
+        metalness: 0, roughness: 0.62,
+        side: m.side, transparent: m.transparent, opacity: m.opacity, alphaTest: m.alphaTest,
+        normalMap: m.normalMap || null,
+      });
+      if (m.normalScale) mono.normalScale.copy(m.normalScale);
+      if (m.map && m.map.image) mono.map = monoTexture(m.map, tint);
+      else mono.color.setRGB(...tone(lum(tint.r, tint.g, tint.b)).map((v) => v / 255), THREE.SRGBColorSpace);
+      monoCache.set(m.uuid, mono);
+      return mono;
+    }
+
+    // ---------- Outline pass: thin black lines where depth or surface direction jumps ----------
+    const size = new THREE.Vector2();
+    const makeTarget = (type) => {
+      renderer.getDrawingBufferSize(size);
+      const t = new THREE.WebGLRenderTarget(size.x, size.y, { type, samples: 4 });
+      return t;
+    };
+    const colorTarget = makeTarget(THREE.HalfFloatType);
+    const normalTarget = makeTarget(THREE.UnsignedByteType);
+    normalTarget.depthTexture = new THREE.DepthTexture(size.x, size.y);
+    const normalMat = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
+
+    const outlineMat = new THREE.ShaderMaterial({
+      uniforms: {
+        tColor: { value: colorTarget.texture }, tNormal: { value: normalTarget.texture },
+        tDepth: { value: normalTarget.depthTexture },
+        texel: { value: new THREE.Vector2(1 / size.x, 1 / size.y) },
+        near: { value: camera.near }, far: { value: camera.far },
+        bg: { value: BG.clone() },
+      },
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+      fragmentShader: `
+        #include <packing>
+        uniform sampler2D tColor, tNormal, tDepth; uniform vec2 texel; uniform float near, far; uniform vec3 bg;
+        varying vec2 vUv;
+        float viewZ(vec2 uv){ return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, near, far); }
+        vec3 nrm(vec2 uv){ return normalize(texture2D(tNormal, uv).xyz * 2.0 - 1.0); }
+        void main(){
+          vec4 src = texture2D(tColor, vUv);   // machine + floor shadow over a transparent clear
+          float zc = viewZ(vUv); vec3 nc = nrm(vUv);
+          float e = 0.0;
+          vec2 offs[4]; offs[0]=vec2(1,0); offs[1]=vec2(-1,0); offs[2]=vec2(0,1); offs[3]=vec2(0,-1);
+          for (int i = 0; i < 4; i++) {
+            vec2 uv = vUv + offs[i] * texel;
+            float z = viewZ(uv);
+            // silhouette: only the nearer side draws, so the line stays 1px wide
+            if (z > zc) e = max(e, smoothstep(0.012, 0.03, (z - zc) / zc));
+            // crease: surface direction changes sharply
+            if (zc < far * 0.99) e = max(e, smoothstep(0.22, 0.42, 1.0 - dot(nrm(uv), nc)));
+          }
+          gl_FragColor = vec4(src.rgb, 1.0);
+          #include <tonemapping_fragment>
+          // background is added after tone mapping so it keeps its exact colour
+          gl_FragColor.rgb = gl_FragColor.rgb + bg * (1.0 - src.a);
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.0), e);
+          #include <colorspace_fragment>
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    const quadScene = new THREE.Scene();
+    const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), outlineMat));
+
+    function resizeTargets() {
+      renderer.getDrawingBufferSize(size);
+      colorTarget.setSize(size.x, size.y);
+      normalTarget.setSize(size.x, size.y);
+      outlineMat.uniforms.texel.value.set(1 / size.x, 1 / size.y);
+    }
+
+    function renderFrame() {
+      // 1) normals + depth of the machine only (no floor, no background)
+      ground.visible = false; scene.background = null; scene.overrideMaterial = normalMat;
+      renderer.shadowMap.autoUpdate = false;
+      renderer.setClearColor(0x000000, 0);
+      renderer.setRenderTarget(normalTarget); renderer.clear(); renderer.render(scene, camera);
+      // 2) lit, shadowed colour pass
+      ground.visible = true; scene.overrideMaterial = null;
+      renderer.shadowMap.needsUpdate = true;
+      renderer.setRenderTarget(colorTarget); renderer.render(scene, camera);
+      // 3) composite colour + outlines to screen (tone mapping applied here)
+      renderer.setRenderTarget(null); renderer.render(quadScene, quadCam);
+    }
+
+    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+    sun.position.set(3, 5, 2);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 15 });
+    sun.shadow.bias = -0.0005;
+    scene.add(sun);
+
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: 0.18 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Drag to rotate, scroll/pinch to zoom, right-drag/two-finger to pan
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+    controls.minDistance = 1;
+    controls.maxDistance = 10;
+
+    new GLTFLoader().load(MODEL_URL, (gltf) => {
+      let meshCount = 0;
+      gltf.scene.traverse((o) => {
+        if (!o.isMesh) return;
+        meshCount++;
+        o.material = Array.isArray(o.material) ? o.material.map(toMono) : toMono(o.material);
+      });
+      const model = meshCount > 200 ? mergeByMaterial(gltf.scene) : gltf.scene;
+      model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+
+      // Normalize: longest side = 2.6 units, sitting on the floor, centered
+      let box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      model.scale.setScalar(2.6 / Math.max(size.x, size.y, size.z));
+      box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      model.position.sub(new THREE.Vector3(center.x, box.min.y, center.z));
+      scene.add(model);
+
+      // Frame the whole machine: back the camera off until its bounding sphere fits
+      const fitted = new THREE.Box3().setFromObject(model);
+      const h = fitted.getSize(new THREE.Vector3()).y;
+      const radius = fitted.getBoundingSphere(new THREE.Sphere()).radius;
+      const fov = THREE.MathUtils.degToRad(camera.fov);
+      const dist = radius / Math.sin(Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * camera.aspect)) / 2) * 1.05;
+      controls.target.set(0, h * 0.45, 0);
+      camera.position.copy(controls.target).add(new THREE.Vector3(0.6, 0.35, 0.72).normalize().multiplyScalar(dist));
+      msg.remove();
+    }, undefined, (err) => {
+      console.error(err);
+      msg.textContent = `Could not load ${MODEL_URL}`;
+    });
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      resizeTargets();
+    });
+
+    renderer.setAnimationLoop(() => { controls.update(); renderFrame(); });
+  </script>
+</body>
+</html>

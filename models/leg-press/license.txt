@@ -1,0 +1,11 @@
+Model Information:
+* title:	Leg Press Machine
+* source:	https://sketchfab.com/3d-models/leg-press-machine-99b9c28dd70d4131918d23f0b58cb14a
+* author:	silentsheri (https://sketchfab.com/silentsheri)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Leg Press Machine" (https://sketchfab.com/3d-models/leg-press-machine-99b9c28dd70d4131918d23f0b58cb14a) by silentsheri (https://sketchfab.com/silentsheri) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
