@@ -228,8 +228,8 @@
     <a href="#1b">1b · Machine page (one exercise)</a>
     <a href="#1b2" class="hifi">1b′ · Several exercises</a>
     <a href="#story/rdl/1" class="hifi">1c · Story step 1 of 5</a>
-    <a href="#story/legpress/2">1d · Story step 2 of 5</a>
-    <a href="#story/legpress/5">1e · Story step 5 of 5</a>
+    <a href="#story/legpress/2">1d · Leg Press step 2 of 4</a>
+    <a href="#story/legpress/4">1e · Leg Press step 4 of 4</a>
     <a href="#end/legpress">1f · End card</a>
     <h2>State</h2>
     <label><input type="checkbox" id="logging"> Logging on</label>
@@ -247,10 +247,9 @@ const MACHINES = {
 const GUIDES = {
   legpress: { machine: 'Leg Press', exercise: 'Leg Press', focus: 'Quads', steps: [
     { title: 'Leg Press', tip: 'Keep a slight bend at the top. Locking your knees puts the weight on your joints.', clip: 'assets/legpress/step-1', dur: 2.57 },
-    { title: 'Knees in line with your toes', tip: 'Don’t let them cave inward as you push.', clip: 'assets/legpress/step-2', dur: 2.87 },
-    { title: 'Lower to about 90°', tip: 'Stop when your knees reach about 90°. Going deeper pulls your hips off the seat.', clip: 'assets/legpress/step-3', dur: 2.23 },
-    { title: 'Lower back flat on the pad', tip: 'If it starts to curl up, you’ve gone too deep.', clip: 'assets/legpress/step-4', dur: 2.97 },
-    { title: 'Push through your heels', tip: null, clip: 'assets/legpress/step-5', dur: 4.13 },
+    { title: 'Lower to 90°, knees over toes', tip: 'Don’t let your knees cave in. Going deeper than 90° pulls your hips off the seat.', clip: 'assets/legpress/step-2', dur: 5.1 },
+    { title: 'Lower back flat on the pad', tip: 'If it starts to curl up, you’ve gone too deep.', clip: 'assets/legpress/step-3', dur: 2.97 },
+    { title: 'Push through your heels', tip: null, clip: 'assets/legpress/step-4', dur: 4.13 },
   ] },
   rdl: { machine: 'Smith Machine', exercise: 'Romanian Deadlifts', focus: 'Hamstrings', steps: [
     { title: 'Romanian Deadlifts', tip: 'Set the bar at mid-thigh. Stand close with your feet hip-width apart, then twist the bar to unhook it.' },
@@ -290,7 +289,7 @@ function show(id) {
 }
 function route() {
   const [name, g, n] = (location.hash.slice(1) || '1a').split('/');
-  if (name === 'story') { state.guide = g in GUIDES ? g : 'legpress'; state.step = Math.max(0, Math.min(4, (+n || 1) - 1)); renderStory(); show('story'); }
+  if (name === 'story') { state.guide = g in GUIDES ? g : 'legpress'; state.step = Math.max(0, Math.min(GUIDES[state.guide].steps.length - 1, (+n || 1) - 1)); renderStory(); show('story'); }
   else if (name === 'end') { state.guide = g in GUIDES ? g : 'legpress'; renderEnd(); show('end'); }
   else if (name === '1b2') { state.machine = 'smith'; show('1b2'); }
   else if (name === '1b') { state.machine = 'legpress'; show('1b'); }
