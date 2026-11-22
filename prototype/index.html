@@ -64,13 +64,6 @@
   .btn[hidden] { display: none; }
   .btn:focus-visible, .hit:focus-visible, .card:focus-visible, .chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-  /* 1a · NFC tap (low-fi) */
-  .nfc-note { left: 16px; top: 56px; width: 358px; padding: 14px 16px 14px; border-radius: var(--radius-lg); background: var(--surface-100); text-align: left; }
-  .nfc-note .t { font-size: 11px; line-height: 14px; color: var(--ink-muted); }
-  .nfc-note .h { font-weight: 600; font-size: 17px; line-height: 22px; margin: 4px 0 2px; }
-  .nfc-note .s { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
-  .nfc-hint { left: 16px; right: 16px; top: 696px; font-size: 15px; line-height: 22px; color: #444; }
-
   /* 1b · machine page, one exercise (low-fi) */
   .ph-img { left: 16px; top: 100px; width: 358px; height: 300px; display: grid; place-items: center; font-weight: 500; font-size: 15px; }
   .chips { left: 16px; top: 528px; width: 358px; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -155,21 +148,9 @@
 <div class="stage-wrap">
   <div class="device" id="device"><div class="phone" id="phone">
 
-    <!-- 1a · NFC tap (low-fi) -->
-    <section class="screen" data-screen="1a" aria-label="Sticker tap">
-      <div class="abs time">9:41</div>
-      <button class="abs nfc-note" data-go="machine">
-        <div class="t">NFC TAG · SHELLWE</div>
-        <div class="h"><span data-bind="machineName">Leg Press</span> guide</div>
-        <div class="s">Tap to open in your browser</div>
-      </button>
-      <p class="abs nfc-hint" style="margin:0">Hold the top of your phone to the Shellwe sticker. The guide opens in the browser, no app needed.</p>
-    </section>
-
     <!-- 1b · Machine page, one exercise (low-fi) -->
     <section class="screen" data-screen="1b" aria-label="Machine page">
       <div class="abs time">9:41</div>
-      <button class="hit" style="left:16px;top:52px" data-go="1a" aria-label="Back"><svg class="icon" viewBox="0 0 24 24"><path d="M15 6L9 12L15 18"/></svg></button>
       <button class="hit save" style="left:350px;top:52px" aria-label="Save" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24"><path d="M6 4H18V20L12 16L6 20V4Z"/></svg></button>
       <div class="abs ph-img">img: the muscle target</div>
       <div class="abs label" style="left:16px;top:414px">Legs · Push · Beginner</div>
@@ -187,7 +168,7 @@
     <!-- 1b′ · Machine page, several exercises (hi-fi, Figma 734:945) -->
     <section class="screen" data-screen="1b2" aria-label="Which exercise">
       <div class="abs time">9:41</div>
-      <button class="hit" style="left:16px;top:52px" data-go="1a" aria-label="Back"><svg class="icon" viewBox="0 0 24 24"><path d="M15 6L9 12L15 18"/></svg></button>
+      <button class="hit" style="left:16px;top:52px" tabindex="-1" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M15 6L9 12L15 18"/></svg></button>
       <div class="abs caption" style="left:0;right:0;top:55px;text-align:center;color:var(--ink)">Smith Machine</div>
       <button class="hit save" style="left:350px;top:52px" aria-label="Save" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24"><path d="M6 4H18V20L12 16L6 20V4Z"/></svg></button>
       <h1 class="abs" style="left:16px;top:101px;width:358px;margin:0;font-weight:600;font-size:24px;line-height:30px">Which exercise are you doing?</h1>
@@ -214,7 +195,7 @@
       <p>Save it to come back to these steps anytime, or tap the next machine.</p>
       <button class="btn b1" id="logSets" hidden>Log sets</button>
       <button class="btn b2" id="endSave">Save</button>
-      <button class="btn b3" data-go="1a">Next machine</button>
+      <button class="btn b3" data-go="next-machine">Next machine</button>
     </section>
 
     <div class="toast" id="toast" role="status"><span id="toastText">Saved to your library</span><u>View</u></div>
@@ -224,7 +205,6 @@
     <h2>Tap a sticker</h2>
     <div class="sticker"><button data-tap="legpress">Leg Press</button><button data-tap="smith">Smith Machine</button></div>
     <h2>First tap</h2>
-    <a href="#1a">1a · Sticker tap</a>
     <a href="#1b">1b · Machine page (one exercise)</a>
     <a href="#1b2" class="hifi">1b′ · Several exercises</a>
     <a href="#story/rdl/1" class="hifi">1c · Story step 1 of 5</a>
@@ -282,18 +262,17 @@ const ICON = {
   save: (on) => `<svg class="icon${on ? ' filled' : ''}" viewBox="0 0 24 24"><path d="M6 4H18V20L12 16L6 20V4Z"/></svg>`,
 };
 
-// ---------------------------------------------------------------- routing (#1a, #1b, #1b2, #story/<guide>/<n>, #end/<guide>)
+// ---------------------------------------------------------------- routing (#1b, #1b2, #story/<guide>/<n>, #end/<guide>)
 function show(id) {
   $$('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === id));
   $$('.panel a').forEach((a) => a.toggleAttribute('aria-current', false));
 }
 function route() {
-  const [name, g, n] = (location.hash.slice(1) || '1a').split('/');
+  const [name, g, n] = (location.hash.slice(1) || MACHINES[state.machine].screen).split('/');
   if (name === 'story') { state.guide = g in GUIDES ? g : 'legpress'; state.step = Math.max(0, Math.min(GUIDES[state.guide].steps.length - 1, (+n || 1) - 1)); renderStory(); show('story'); }
   else if (name === 'end') { state.guide = g in GUIDES ? g : 'legpress'; renderEnd(); show('end'); }
   else if (name === '1b2') { state.machine = 'smith'; show('1b2'); }
-  else if (name === '1b') { state.machine = 'legpress'; show('1b'); }
-  else { $('[data-bind="machineName"]').textContent = MACHINES[state.machine].name; show('1a'); }
+  else { state.machine = 'legpress'; show('1b'); }
   const cur = $$('.panel a').find((a) => a.getAttribute('href') === location.hash) || $$('.panel a').find((a) => a.getAttribute('href') === '#' + name);
   if (cur) cur.setAttribute('aria-current', 'page');
 }
@@ -382,8 +361,9 @@ function toggleSave() {
 // ---------------------------------------------------------------- events
 document.addEventListener('click', (e) => {
   const t = e.target.closest('button, a'); if (!t) return;
-  if (t.dataset.tap) { state.machine = t.dataset.tap; go('1a'); return; }
+  if (t.dataset.tap) { state.machine = t.dataset.tap; go(MACHINES[state.machine].screen); return; }
   if (t.dataset.go === 'machine') { go(MACHINES[state.machine].screen); return; }
+  if (t.dataset.go === 'next-machine') { state.machine = state.guide === 'legpress' ? 'smith' : 'legpress'; go(MACHINES[state.machine].screen); return; }
   if (t.dataset.go) { go(t.dataset.go); return; }
   if (t.dataset.start) { state.tipHidden = false; go(`story/${t.dataset.start}/1`); return; }
   if (t.id === 'startEx') { state.tipHidden = false; go(`story/${state.exercise}/1`); return; }
