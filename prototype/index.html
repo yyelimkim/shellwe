@@ -245,7 +245,7 @@ const MACHINES = {
   smith: { name: 'Smith Machine', screen: '1b2' },
 };
 const GUIDES = {
-  legpress: { machine: 'Leg Press', exercise: 'Leg Press', focus: 'Quads', steps: [
+  legpress: { machine: 'Leg Press Machine', exercise: 'Leg Press', focus: 'Quads', steps: [
     { title: 'Keep a slight bend at the top', tip: 'Keep a slight bend at the top. Don’t lock your knees.', clip: 'assets/legpress/step-1', dur: 2.57 },
     { title: 'Lower to 90°, knees over toes', tip: 'Lower to 90°. Keep your knees over your toes.', clip: 'assets/legpress/step-2', dur: 5.1 },
     { title: 'Lower back flat on the pad', tip: 'Keep your lower back flat on the pad.', clip: 'assets/legpress/step-3', dur: 2.97 },
@@ -361,7 +361,7 @@ function renderEnd() {
   const G = GUIDES[state.guide];
   $('#endProgress').innerHTML = '<i></i>'.repeat(G.steps.length);
   $('#endSteps').textContent = G.steps.length;
-  $('#endTitle').textContent = `You know the ${G.exercise === G.machine ? G.machine : G.exercise}`;
+  $('#endTitle').textContent = `You know the ${G.exercise}`;
   $('#logSets').hidden = !state.logging;
   $('#endSave').textContent = state.saved.has(state.guide) ? 'Saved' : 'Save';
 }
@@ -394,7 +394,7 @@ document.addEventListener('click', (e) => {
     $('#startEx').textContent = 'Start ' + GUIDES[state.exercise].exercise; return;
   }
   if (t.dataset.step) { step(+t.dataset.step); return; }
-  if ('close' in t.dataset) { go(GUIDES[state.guide].machine === 'Leg Press' ? '1b' : '1b2'); return; }
+  if ('close' in t.dataset) { go(state.guide === 'legpress' ? '1b' : '1b2'); return; }
   if ('tip' in t.dataset) { step(1); return; }
   if ('mascot' in t.dataset) { state.tipHidden = !state.tipHidden; $('#storyBody').classList.toggle('tip-hidden', state.tipHidden); return; }
   if (t.classList.contains('save')) {
