@@ -125,15 +125,24 @@
   .tapzones button { flex: 1; } .tapzones button:last-child { flex: 2; }
 
   /* end card (low-fi) */
+  /* 1f · end card (Figma 727:176) */
   .s-end { background: var(--stage); color: var(--on-stage); }
   .s-end .time { color: var(--on-stage); }
   .s-end .progress i { background: var(--on-stage); }
-  .s-end .k { left: 16px; top: 200px; color: rgba(255,255,255,.6); }
-  .s-end h1 { position: absolute; left: 16px; top: 222px; width: 358px; margin: 0; font-weight: 500; font-size: 28px; line-height: 36px; }
-  .s-end p { position: absolute; left: 16px; top: 276px; width: 358px; margin: 0; font-size: 15px; line-height: 22px; color: rgba(255,255,255,.6); }
-  .s-end .b1 { top: 602px; background: var(--surface-100); color: var(--ink); }
-  .s-end .b2 { top: 662px; background: #fff; color: var(--ink); }
-  .s-end .b3 { top: 722px; background: var(--accent); color: var(--ink); }
+  .s-end .count { left: 16px; top: 72px; color: var(--on-stage); }
+  .s-end .bg { left: -91px; top: 0; width: 572px; height: 678px; opacity: .53; overflow: hidden; pointer-events: none; }
+  .s-end .bg img { position: absolute; left: 0; top: -11.29%; width: 100%; height: 134.29%; max-width: none; }
+  .s-end .fade { left: 0; top: 564px; width: 390px; height: 280px; background: linear-gradient(to bottom, rgba(17,17,17,0) 2.4%, #111 44.2%); pointer-events: none; }
+  .s-end .done { left: 16px; top: 333px; width: 358px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+  .s-end h1 { margin: 0; font-weight: 600; font-size: 30px; line-height: 36px; }
+  .s-end .done p { margin: 0; font-size: 15px; line-height: 22px; color: #fff; }
+  .s-end .again { font-size: 15px; line-height: 22px; color: #fff; text-decoration: underline; text-underline-position: from-font; align-self: center; }
+  .s-end .cap { left: 16px; top: 635px; color: #fff; }
+  .s-end .ex { left: 16px; top: 653px; font-weight: 500; font-size: 20px; line-height: 30px; color: #fff; }
+  .s-end .actions { left: 16px; top: 697px; width: 358px; display: flex; flex-direction: column; gap: 8px; }
+  .s-end .actions .btn { position: static; width: 358px; }
+  .s-end .b1 { background: var(--on-stage); color: var(--stage); }
+  .s-end .b3 { background: var(--accent); color: var(--ink); }
 
   /* toast */
   .toast { position: absolute; left: 16px; right: 16px; bottom: 28px; z-index: 5; display: flex; align-items: center; justify-content: space-between;
@@ -187,15 +196,24 @@
 
     <!-- 1f · End card (low-fi) -->
     <section class="screen s-end" data-screen="end" aria-label="Guide done">
+      <div class="abs bg"><img id="endImg" src="assets/end-leg-press.png" alt=""></div>
       <div class="abs time">9:41</div>
       <div class="abs progress" id="endProgress"></div>
-      <button class="hit" style="left:350px;top:66px;color:#fff" data-go="machine" aria-label="Close"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
-      <div class="abs label k">Done · <span id="endSteps">5</span> steps</div>
-      <h1 id="endTitle">You know the Leg Press</h1>
-      <p>Save it to come back to these steps anytime, or tap the next machine.</p>
-      <button class="btn b1" id="logSets" hidden>Log sets</button>
-      <button class="btn b2" id="endSave">Save</button>
-      <button class="btn b3" data-go="next-machine">Next machine</button>
+      <div class="abs label count" id="endCount">03 / 03</div>
+      <button class="hit" style="left:350px;top:66px;color:var(--on-stage)" data-close aria-label="Close"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+      <div class="abs done">
+        <h1>You’re all set!</h1>
+        <p id="endLine">Now you know how to do a Leg Press</p>
+        <button class="again" id="watchAgain">Watch again</button>
+      </div>
+      <div class="abs fade"></div>
+      <div class="abs caption cap" id="endMachine">Leg Press Machine</div>
+      <div class="abs ex" id="endExercise">Leg Press</div>
+      <button class="hit save" id="endSave" style="left:345px;top:649px;color:var(--on-stage)" aria-label="Save" aria-pressed="false"></button>
+      <div class="abs actions">
+        <button class="btn b1" id="logSets">Log your sets</button>
+        <button class="btn b3" data-go="next-machine">Next machine</button>
+      </div>
     </section>
 
     <div class="toast" id="toast" role="status"><span id="toastText">Saved to your library</span><u>View</u></div>
@@ -209,12 +227,11 @@
     <a href="#story/legpress/1" class="hifi">Story step 1 of 3</a>
     <a href="#story/legpress/2" class="hifi">Story step 2 of 3</a>
     <a href="#story/legpress/3" class="hifi">Story step 3 of 3</a>
-    <a href="#end/legpress">End card</a>
+    <a href="#end/legpress" class="hifi">End card</a>
     <h2>Smith Machine</h2>
     <a href="#1b2" class="hifi">Machine page</a>
     <a href="#story/rdl/1" class="hifi">RDL step 1 of 5</a>
-    <h2>State</h2>
-    <label><input type="checkbox" id="logging"> Logging on</label>
+    <a href="#end/rdl" class="hifi">RDL end card</a>
     <h2>Gestures</h2>
     <div style="padding:0 8px;opacity:.75">Story: tap right for next, left for back, hold to pause. Tap the tip to go to the next step. Tap the mascot to hide or show the tip.</div>
   </nav>
@@ -227,26 +244,26 @@ const MACHINES = {
   smith: { name: 'Smith Machine', screen: '1b2' },
 };
 const GUIDES = {
-  legpress: { machine: 'Leg Press Machine', exercise: 'Leg Press', focus: 'Quads', steps: [
+  legpress: { machine: 'Leg Press Machine', exercise: 'Leg Press', doName: 'a Leg Press', focus: 'Quads', steps: [
     { title: 'Keep a slight bend at the top', tip: 'Keep a slight bend at the top. Don’t lock your knees.', clip: 'assets/legpress/step-1', dur: 2.57 },
     { title: 'Lower to 90°, knees over toes', tip: 'Lower to 90°. Keep your knees over your toes.', clip: 'assets/legpress/step-2', dur: 5.1 },
     { title: 'Push through your heels', tip: 'Push through your heels, then lower slowly.', clip: 'assets/legpress/step-3', dur: 4.13 },
   ] },
-  rdl: { machine: 'Smith Machine', exercise: 'Romanian Deadlifts', focus: 'Hamstrings', steps: [
+  rdl: { machine: 'Smith Machine', exercise: 'Romanian Deadlifts', doName: 'Romanian Deadlifts', focus: 'Hamstrings', steps: [
     { title: 'Romanian Deadlifts', tip: 'Set the bar at mid-thigh. Feet hip-width apart.' },
     { title: 'Push your hips back and keep the bar close', tip: 'Soft knees. Your back stays flat.' },
     { title: 'Lower until you feel your hamstrings stretch', tip: 'For most people that is just below the knees.' },
     { title: 'Squeeze your glutes to stand back up', tip: 'Stand tall at the top, don’t lean back.' },
     { title: 'Twist the bar to hook it back on', tip: null },
   ] },
-  squat: { machine: 'Smith Machine', exercise: 'Squats', focus: 'Quads', steps: [
+  squat: { machine: 'Smith Machine', exercise: 'Squats', doName: 'Squats', focus: 'Quads', steps: [
     { title: 'Squats', tip: 'Set the bar below shoulder height. Rest it on your upper back.' },
     { title: 'Feet a little in front of the bar, shoulder-width apart', tip: 'Toes turned out slightly.' },
     { title: 'Twist the bar to unhook it', tip: 'Brace your core before you move.' },
     { title: 'Sit down until your thighs are about level', tip: 'Knees follow your toes, not inward.' },
     { title: 'Drive up through your whole foot', tip: null },
   ] },
-  bench: { machine: 'Smith Machine', exercise: 'Bench Press', focus: 'Chest', steps: [
+  bench: { machine: 'Smith Machine', exercise: 'Bench Press', doName: 'a Bench Press', focus: 'Chest', steps: [
     { title: 'Bench Press', tip: 'Line the bench up so the bar is over your mid-chest.' },
     { title: 'Grip a little wider than your shoulders', tip: 'Wrists straight, thumbs around the bar.' },
     { title: 'Twist the bar to unhook it', tip: 'Shoulder blades pinched back into the bench.' },
@@ -256,7 +273,7 @@ const GUIDES = {
 };
 
 // ---------------------------------------------------------------- state
-const state = { machine: 'legpress', exercise: 'rdl', guide: 'legpress', step: 0, saved: new Set(), logging: false, tipHidden: false };
+const state = { machine: 'legpress', exercise: 'rdl', guide: 'legpress', step: 0, saved: new Set(), tipHidden: false };
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const ICON = {
   close: '<svg class="icon" viewBox="0 0 24 24"><path d="M6 6L18 18M18 6L6 18"/></svg>',
@@ -339,11 +356,14 @@ function step(d) {
 }
 function renderEnd() {
   const G = GUIDES[state.guide];
+  const n = String(G.steps.length).padStart(2, '0'), saved = state.saved.has(state.guide);
   $('#endProgress').innerHTML = '<i></i>'.repeat(G.steps.length);
-  $('#endSteps').textContent = G.steps.length;
-  $('#endTitle').textContent = `You know the ${G.exercise}`;
-  $('#logSets').hidden = !state.logging;
-  $('#endSave').textContent = state.saved.has(state.guide) ? 'Saved' : 'Save';
+  $('#endCount').textContent = `${n} / ${n}`;
+  $('#endImg').src = G.machine === 'Smith Machine' ? 'assets/end-smith-machine.png' : 'assets/end-leg-press.png';
+  $('#endLine').textContent = `Now you know how to do ${G.doName}`;
+  $('#endMachine').textContent = G.machine;
+  $('#endExercise').textContent = G.exercise;
+  $('#endSave').setAttribute('aria-pressed', saved); $('#endSave').innerHTML = ICON.save(saved);
 }
 
 // ---------------------------------------------------------------- toast
@@ -379,10 +399,10 @@ document.addEventListener('click', (e) => {
   if ('tip' in t.dataset) { step(1); return; }
   if ('mascot' in t.dataset) { state.tipHidden = !state.tipHidden; $('#storyBody').classList.toggle('tip-hidden', state.tipHidden); return; }
   if (t.classList.contains('save')) {
-    if (!$('[data-screen="story"]').classList.contains('on')) state.guide = state.machine === 'smith' ? state.exercise : 'legpress';
+    if ($('[data-screen="1b"]').classList.contains('on') || $('[data-screen="1b2"]').classList.contains('on')) state.guide = state.machine === 'smith' ? state.exercise : 'legpress';
     const on = toggleSave(); t.setAttribute('aria-pressed', on); t.innerHTML = ICON.save(on); return;
   }
-  if (t.id === 'endSave') { toggleSave(); renderEnd(); return; }
+  if (t.id === 'watchAgain') { state.tipHidden = false; go(`story/${state.guide}/1`); return; }
   if (t.id === 'logSets') { toast('Logging comes next in the prototype'); return; }
 });
 // hold to pause the step clip
@@ -402,7 +422,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') step(-1);
   if (e.key === 'Escape') $('[data-close]').click();
 });
-$('#logging').addEventListener('change', (e) => { state.logging = e.target.checked; renderEnd(); });
 
 // ---------------------------------------------------------------- fit the 390 x 844 design to the window
 function fit() {
