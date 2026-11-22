@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shellwe Prototype</title>
+<link rel="icon" href="../assets/brand/shellwe-logomark.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Shellwe tokens (design system) */
+  :root {
+    --bg: #ffffff; --ink: #111111; --ink-muted: #646464; --surface-100: #f2f2f2; --line: #e3e3e3;
+    --stage: #222222; --on-stage: #ffffff; --on-stage-muted: rgba(255,255,255,.45);
+    --inverse: #111111; --on-inverse: #ffffff; --accent: #e5f476; --bubble: #f9f9f9;
+    --radius-md: 14px; --radius-lg: 20px; --radius-pill: 999px;
+    --font: "Host Grotesk", system-ui, -apple-system, sans-serif;
+    --page: #e9e9e9; --panel-ink: #333;
+  }
+  @media (prefers-color-scheme: dark) { :root { --page: #161616; --panel-ink: #ccc; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--page); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+
+  /* ---------- device frame: iPhone 390 x 844, scaled to fit ---------- */
+  .stage-wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; gap: 40px; }
+  .device { width: 390px; height: 844px; position: relative; flex: none; transform-origin: center; }
+  /* iPhone 14 / 13 / 12: 390 x 844 pt screen, 47.33pt display corner radius */
+  .phone { position: absolute; inset: 0; border-radius: 47.33px; overflow: hidden; background: var(--bg);
+           box-shadow: 0 0 0 12px #0d0d0d, 0 30px 80px rgba(0,0,0,.28); }
+  @media (max-width: 500px) {
+    .stage-wrap { gap: 0; }
+    .phone { box-shadow: none; border-radius: 0; }
+    .panel { display: none !important; }
+  }
+
+  /* ---------- prototype panel (desktop only) ---------- */
+  .panel { width: 230px; color: var(--panel-ink); font-size: 13px; line-height: 18px; flex: none; }
+  .panel h2 { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; margin: 18px 0 6px; opacity: .6; font-weight: 600; }
+  .panel a { display: block; color: inherit; text-decoration: none; padding: 4px 8px; border-radius: 8px; }
+  .panel a:hover { background: rgba(127,127,127,.15); }
+  .panel a[aria-current="page"] { background: var(--ink); color: #fff; }
+  .panel .hifi::after { content: "hi-fi"; font-size: 10px; margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: var(--accent); color: #111; }
+  .panel label { display: flex; gap: 8px; align-items: center; padding: 4px 8px; cursor: pointer; }
+  .panel .sticker { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 8px; }
+  .panel .sticker button { padding: 6px 10px; border-radius: 99px; background: var(--accent); color: #111; font-weight: 600; font-size: 12px; }
+
+  /* ---------- screens ---------- */
+  .screen { position: absolute; inset: 0; display: none; overflow: hidden; color: var(--ink); background: var(--bg); }
+  .screen.on { display: block; }
+  .abs { position: absolute; }
+  .time { left: 32px; top: 14px; font-weight: 600; font-size: 15px; line-height: 22px; }
+  .icon { width: 24px; height: 24px; display: block; }
+  .icon path { stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  .icon.filled path { fill: currentColor; }
+  .hit { position: absolute; width: 44px; height: 44px; display: grid; place-items: center; margin: -10px; }
+  .label { font-weight: 600; font-size: 12px; line-height: 16px; text-transform: uppercase; color: var(--ink-muted); }
+  .caption { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+  .btn { position: absolute; left: 16px; width: 358px; height: 52px; border-radius: var(--radius-pill); display: flex;
+         align-items: center; justify-content: center; padding: 0 24px; font-weight: 600; font-size: 15px; line-height: 20px; }
+  .btn.primary { background: var(--inverse); color: var(--on-inverse); }
+  .btn:active { transform: scale(.98); }
+  .btn[hidden] { display: none; }
+  .btn:focus-visible, .hit:focus-visible, .card:focus-visible, .chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* 1a · NFC tap (low-fi) */
+  .nfc-note { left: 16px; top: 56px; width: 358px; padding: 14px 16px 14px; border-radius: var(--radius-lg); background: var(--surface-100); text-align: left; }
+  .nfc-note .t { font-size: 11px; line-height: 14px; color: var(--ink-muted); }
+  .nfc-note .h { font-weight: 600; font-size: 17px; line-height: 22px; margin: 4px 0 2px; }
+  .nfc-note .s { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+  .nfc-hint { left: 16px; right: 16px; top: 696px; font-size: 15px; line-height: 22px; color: #444; }
+
+  /* 1b · machine page, one exercise (low-fi) */
+  .ph-img { left: 16px; top: 100px; width: 358px; height: 300px; display: grid; place-items: center; font-weight: 500; font-size: 15px; }
+  .chips { left: 16px; top: 528px; width: 358px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { height: 36px; padding: 0 16px; border-radius: var(--radius-pill); border: 1px solid #9a9a9a; font-weight: 500; font-size: 15px; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* 1b′ · machine page, several exercises (hi-fi) */
+  .card { position: absolute; left: 16px; width: 358px; height: 154px; border-radius: 20px; overflow: hidden; background: var(--surface-100);
+          display: flex; flex-direction: column; justify-content: flex-end; padding: 12px 16px; text-align: left; transition: background .2s; }
+  .card .art { position: absolute; inset: 0; background: #c0c1c5; opacity: 0; transition: opacity .25s; }
+  .card[aria-pressed="true"] .art { opacity: 1; }
+  .card .name { position: relative; font-weight: 600; font-size: 17px; line-height: 22px; }
+  .card .mus { position: relative; font-weight: 600; font-size: 12px; line-height: 16px; color: var(--ink-muted); text-transform: uppercase; margin-top: 4px; }
+
+  /* 1c · story, hi-fi step (light) */
+  .s-hi { background: var(--stage); }
+  .s-hi .clip { left: -2px; top: 0; width: 392px; height: 723px; border-radius: var(--radius-md); overflow: hidden; background: rgba(242,242,242,.79); }
+  .s-hi .clip img, .s-hi .clip video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .s-hi .fade { left: 0; top: 585px; width: 390px; height: 259px; background: linear-gradient(to bottom, rgba(238,238,238,0) 2.4%, #eee 44.2%); }
+  .progress { left: 16px; top: 52px; width: 358px; height: 3px; display: flex; gap: 4px; }
+  .progress i { flex: 1; height: 3px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; position: relative; }
+  .progress i.done { background: var(--stage); }
+  .progress i.now b { position: absolute; left: 0; top: 0; height: 3px; width: 0; background: var(--stage); animation: fill var(--dur, 4s) linear infinite; }
+  .paused .progress i.now b { animation-play-state: paused; }
+  @keyframes fill { to { width: 100%; } }
+  .s-hi .count { left: 16px; top: 72px; }
+  /* black bottom gradient, white text */
+  .s-hi .fade { background: linear-gradient(to bottom, rgba(0,0,0,0) 2.4%, #000 44.2%); }
+  .s-hi { background: #000; }
+  .s-hi .s-title, .s-hi .save { color: #fff; }
+  .s-hi .s-cap { color: rgba(255,255,255,.6); }
+  /* the mascot always sits above the tip bubble */
+  .s-hi [data-mascot] { z-index: 2; }
+  /* steps with a dark form clip: light status bar, progress, count and close */
+  .s-hi.on-video .scrim { left: 0; top: 0; width: 390px; height: 140px; background: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,0)); pointer-events: none; }
+  .s-hi.on-video .time, .s-hi.on-video .count, .s-hi.on-video [data-close] { color: #fff; }
+  .s-hi.on-video .progress i { background: rgba(255,255,255,.35); }
+  .s-hi.on-video .progress i.done, .s-hi.on-video .progress i.now b { background: #fff; }
+  .bubble { position: absolute; border-radius: var(--radius-md); background: var(--bubble); padding: 12px 15px; font-size: 13px; line-height: 18px; color: var(--ink); transition: opacity .2s, transform .2s; transform-origin: left bottom; }
+  .bubble .chev { position: absolute; left: 239px; top: 91px; width: 5px; height: 10px; transform: rotate(180deg); }
+  .tip-hidden .bubble { opacity: 0; transform: scale(.9); pointer-events: none; }
+
+  /* story, low-fi steps (dark) */
+  .s-lo { background: var(--stage); color: var(--on-stage); }
+  .s-lo .time { color: var(--on-stage); }
+  .s-lo .progress i { background: rgba(255,255,255,.3); }
+  .s-lo .progress i.done, .s-lo .progress i.now b { background: var(--on-stage); }
+  .s-lo .count { left: 16px; top: 72px; color: var(--on-stage-muted); }
+  .s-lo .ph { left: 16px; top: 104px; width: 358px; height: 380px; border-radius: var(--radius-md); background: #f2f2f2; overflow: hidden; display: grid; place-items: center; }
+  .s-lo .ph svg { position: absolute; inset: 0; }
+  .s-lo .ph span { position: relative; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: #555; background: #f2f2f2; padding: 2px 4px; }
+  .s-lo .cap { left: 16px; top: 500px; color: rgba(255,255,255,.6); font-size: 13px; line-height: 18px; }
+  .s-lo .title { left: 16px; top: 522px; width: 340px; font-weight: 500; font-size: 20px; line-height: 30px; }
+  .s-lo .bubble { left: 16px; top: 668px; max-width: 228px; }
+  .s-lo .mascot { left: 16px; top: 724px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #111; display: grid; place-items: center; font-size: 11px; }
+
+  /* tap zones for the story */
+  .tapzones { position: absolute; left: 0; right: 0; top: 90px; bottom: 0; display: flex; }
+  .tapzones button { flex: 1; } .tapzones button:last-child { flex: 2; }
+
+  /* end card (low-fi) */
+  .s-end { background: var(--stage); color: var(--on-stage); }
+  .s-end .time { color: var(--on-stage); }
+  .s-end .progress i { background: var(--on-stage); }
+  .s-end .k { left: 16px; top: 200px; color: rgba(255,255,255,.6); }
+  .s-end h1 { position: absolute; left: 16px; top: 222px; width: 358px; margin: 0; font-weight: 500; font-size: 28px; line-height: 36px; }
+  .s-end p { position: absolute; left: 16px; top: 276px; width: 358px; margin: 0; font-size: 15px; line-height: 22px; color: rgba(255,255,255,.6); }
+  .s-end .b1 { top: 602px; background: var(--surface-100); color: var(--ink); }
+  .s-end .b2 { top: 662px; background: #fff; color: var(--ink); }
+  .s-end .b3 { top: 722px; background: var(--accent); color: var(--ink); }
+
+  /* toast */
+  .toast { position: absolute; left: 16px; right: 16px; bottom: 28px; z-index: 5; display: flex; align-items: center; justify-content: space-between;
+           padding: 14px 16px; border-radius: var(--radius-md); background: var(--inverse); color: #fff; font-size: 15px; line-height: 20px;
+           transform: translateY(calc(100% + 40px)); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+  .toast.on { transform: none; }
+  .toast u { font-weight: 600; text-underline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { .progress i.now b { animation: none; width: 50%; } .toast, .bubble { transition: none; } }
+</style>
+</head>
+<body>
+<div class="stage-wrap">
+  <div class="device" id="device"><div class="phone" id="phone">
+
+    <!-- 1a · NFC tap (low-fi) -->
+    <section class="screen" data-screen="1a" aria-label="Sticker tap">
+      <div class="abs time">9:41</div>
+      <button class="abs nfc-note" data-go="machine">
+        <div class="t">NFC TAG · SHELLWE</div>
+        <div class="h"><span data-bind="machineName">Leg Press</span> guide</div>
+        <div class="s">Tap to open in your browser</div>
+      </button>
+      <p class="abs nfc-hint" style="margin:0">Hold the top of your phone to the Shellwe sticker. The guide opens in the browser, no app needed.</p>
+    </section>
+
+    <!-- 1b · Machine page, one exercise (low-fi) -->
+    <section class="screen" data-screen="1b" aria-label="Machine page">
+      <div class="abs time">9:41</div>
+      <button class="hit" style="left:16px;top:52px" data-go="1a" aria-label="Back"><svg class="icon" viewBox="0 0 24 24"><path d="M15 6L9 12L15 18"/></svg></button>
+      <button class="hit save" style="left:350px;top:52px" aria-label="Save" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24"><path d="M6 4H18V20L12 16L6 20V4Z"/></svg></button>
+      <div class="abs ph-img">img: the muscle target</div>
+      <div class="abs label" style="left:16px;top:414px">Legs · Push · Beginner</div>
+      <div class="abs" style="left:16px;top:438px;font-weight:500;font-size:24px;line-height:30px">Leg Press</div>
+      <div class="abs" style="left:16px;top:494px;font-weight:500;font-size:17px;line-height:22px">Which muscle do you want to focus on?</div>
+      <div class="abs chips" role="group" aria-label="Focus">
+        <button class="chip" aria-pressed="false">Quads</button>
+        <button class="chip" aria-pressed="false">Glutes</button>
+        <button class="chip" aria-pressed="false">Hamstrings</button>
+        <button class="chip" aria-pressed="true">Just the basics</button>
+      </div>
+      <button class="btn primary" style="top:760px" data-start="legpress">Start guide</button>
+    </section>
+
+    <!-- 1b′ · Machine page, several exercises (hi-fi, Figma 734:945) -->
+    <section class="screen" data-screen="1b2" aria-label="Which exercise">
+      <div class="abs time">9:41</div>
+      <button class="hit" style="left:16px;top:52px" data-go="1a" aria-label="Back"><svg class="icon" viewBox="0 0 24 24"><path d="M15 6L9 12L15 18"/></svg></button>
+      <div class="abs caption" style="left:0;right:0;top:55px;text-align:center;color:var(--ink)">Smith Machine</div>
+      <button class="hit save" style="left:350px;top:52px" aria-label="Save" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24"><path d="M6 4H18V20L12 16L6 20V4Z"/></svg></button>
+      <h1 class="abs" style="left:16px;top:101px;width:358px;margin:0;font-weight:600;font-size:24px;line-height:30px">Which exercise are you doing?</h1>
+      <div role="radiogroup" aria-label="Exercise">
+        <button class="card" style="top:204px" data-ex="squat" aria-pressed="false"><span class="art"></span><span class="name">Squats</span><span class="mus">Quads</span></button>
+        <button class="card" style="top:368px" data-ex="rdl" aria-pressed="true"><span class="art"></span><span class="name">Romanian Deadlifts</span><span class="mus">Hamstrings</span></button>
+        <button class="card" style="top:532px" data-ex="bench" aria-pressed="false"><span class="art"></span><span class="name">Bench Press</span><span class="mus">Chest</span></button>
+      </div>
+      <button class="btn primary" style="top:760px" id="startEx">Start Romanian Deadlifts</button>
+    </section>
+
+    <!-- Story (step 1 = hi-fi Figma 727:79, steps 2–5 = low-fi) -->
+    <section class="screen" data-screen="story" aria-label="Guide" aria-roledescription="story">
+      <div id="storyBody"></div>
+    </section>
+
+    <!-- 1f · End card (low-fi) -->
+    <section class="screen s-end" data-screen="end" aria-label="Guide done">
+      <div class="abs time">9:41</div>
+      <div class="abs progress" id="endProgress"></div>
+      <button class="hit" style="left:350px;top:66px;color:#fff" data-go="machine" aria-label="Close"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+      <div class="abs label k">Done · <span id="endSteps">5</span> steps</div>
+      <h1 id="endTitle">You know the Leg Press</h1>
+      <p>Save it to come back to these steps anytime, or tap the next machine.</p>
+      <button class="btn b1" id="logSets" hidden>Log sets</button>
+      <button class="btn b2" id="endSave">Save</button>
+      <button class="btn b3" data-go="1a">Next machine</button>
+    </section>
+
+    <div class="toast" id="toast" role="status"><span id="toastText">Saved to your library</span><u>View</u></div>
+  </div></div>
+
+  <nav class="panel" aria-label="Prototype">
+    <h2>Tap a sticker</h2>
+    <div class="sticker"><button data-tap="legpress">Leg Press</button><button data-tap="smith">Smith Machine</button></div>
+    <h2>First tap</h2>
+    <a href="#1a">1a · Sticker tap</a>
+    <a href="#1b">1b · Machine page (one exercise)</a>
+    <a href="#1b2" class="hifi">1b′ · Several exercises</a>
+    <a href="#story/rdl/1" class="hifi">1c · Story step 1 of 5</a>
+    <a href="#story/legpress/2">1d · Story step 2 of 5</a>
+    <a href="#story/legpress/5">1e · Story step 5 of 5</a>
+    <a href="#end/legpress">1f · End card</a>
+    <h2>State</h2>
+    <label><input type="checkbox" id="logging"> Logging on</label>
+    <h2>Gestures</h2>
+    <div style="padding:0 8px;opacity:.75">Story: tap right for next, left for back, hold to pause. Tap the tip to go to the next step. Tap the mascot to hide or show the tip.</div>
+  </nav>
+</div>
+
+<script>
+// ---------------------------------------------------------------- content
+const MACHINES = {
+  legpress: { name: 'Leg Press', screen: '1b' },
+  smith: { name: 'Smith Machine', screen: '1b2' },
+};
+const GUIDES = {
+  legpress: { machine: 'Leg Press', exercise: 'Leg Press', focus: 'Quads', steps: [
+    { title: 'Leg Press', tip: 'Keep a slight bend at the top. Locking your knees puts the weight on your joints.', clip: 'assets/legpress/step-1', dur: 2.57 },
+    { title: 'Knees in line with your toes', tip: 'Don’t let them cave inward as you push.', clip: 'assets/legpress/step-2', dur: 2.87 },
+    { title: 'Lower to about 90°', tip: 'Stop when your knees reach about 90°. Going deeper pulls your hips off the seat.', clip: 'assets/legpress/step-3', dur: 2.23 },
+    { title: 'Lower back flat on the pad', tip: 'If it starts to curl up, you’ve gone too deep.', clip: 'assets/legpress/step-4', dur: 2.97 },
+    { title: 'Push through your heels', tip: null, clip: 'assets/legpress/step-5', dur: 4.13 },
+  ] },
+  rdl: { machine: 'Smith Machine', exercise: 'Romanian Deadlifts', focus: 'Hamstrings', steps: [
+    { title: 'Romanian Deadlifts', tip: 'Set the bar at mid-thigh. Stand close with your feet hip-width apart, then twist the bar to unhook it.' },
+    { title: 'Push your hips back and keep the bar close', tip: 'Soft knees. Your back stays flat.' },
+    { title: 'Lower until you feel your hamstrings stretch', tip: 'For most people that is just below the knees.' },
+    { title: 'Squeeze your glutes to stand back up', tip: 'Stand tall at the top, don’t lean back.' },
+    { title: 'Twist the bar to hook it back on', tip: null },
+  ] },
+  squat: { machine: 'Smith Machine', exercise: 'Squats', focus: 'Quads', steps: [
+    { title: 'Squats', tip: 'Set the bar just below shoulder height. Step under it so it rests on your upper back.' },
+    { title: 'Feet a little in front of the bar, shoulder-width apart', tip: 'Toes turned out slightly.' },
+    { title: 'Twist the bar to unhook it', tip: 'Brace your core before you move.' },
+    { title: 'Sit down until your thighs are about level', tip: 'Knees follow your toes, not inward.' },
+    { title: 'Drive up through your whole foot', tip: null },
+  ] },
+  bench: { machine: 'Smith Machine', exercise: 'Bench Press', focus: 'Chest', steps: [
+    { title: 'Bench Press', tip: 'Roll a flat bench under the bar so it lines up with the middle of your chest.' },
+    { title: 'Grip a little wider than your shoulders', tip: 'Wrists straight, thumbs around the bar.' },
+    { title: 'Twist the bar to unhook it', tip: 'Shoulder blades pinched back into the bench.' },
+    { title: 'Lower to your mid-chest', tip: 'Elbows at about 45°, not flared out.' },
+    { title: 'Press up until your arms are straight', tip: null },
+  ] },
+};
+
+// ---------------------------------------------------------------- state
+const state = { machine: 'legpress', exercise: 'rdl', guide: 'legpress', step: 0, saved: new Set(), logging: false, tipHidden: false };
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const ICON = {
+  close: '<svg class="icon" viewBox="0 0 24 24"><path d="M6 6L18 18M18 6L6 18"/></svg>',
+  save: (on) => `<svg class="icon${on ? ' filled' : ''}" viewBox="0 0 24 24"><path d="M6 4H18V20L12 16L6 20V4Z"/></svg>`,
+};
+
+// ---------------------------------------------------------------- routing (#1a, #1b, #1b2, #story/<guide>/<n>, #end/<guide>)
+function show(id) {
+  $$('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === id));
+  $$('.panel a').forEach((a) => a.toggleAttribute('aria-current', false));
+}
+function route() {
+  const [name, g, n] = (location.hash.slice(1) || '1a').split('/');
+  if (name === 'story') { state.guide = g in GUIDES ? g : 'legpress'; state.step = Math.max(0, Math.min(4, (+n || 1) - 1)); renderStory(); show('story'); }
+  else if (name === 'end') { state.guide = g in GUIDES ? g : 'legpress'; renderEnd(); show('end'); }
+  else if (name === '1b2') { state.machine = 'smith'; show('1b2'); }
+  else if (name === '1b') { state.machine = 'legpress'; show('1b'); }
+  else { $('[data-bind="machineName"]').textContent = MACHINES[state.machine].name; show('1a'); }
+  const cur = $$('.panel a').find((a) => a.getAttribute('href') === location.hash) || $$('.panel a').find((a) => a.getAttribute('href') === '#' + name);
+  if (cur) cur.setAttribute('aria-current', 'page');
+}
+const go = (hash) => { if (location.hash === '#' + hash) route(); else location.hash = hash; };
+addEventListener('hashchange', route);
+
+// ---------------------------------------------------------------- story player
+function progress(n, now) {
+  return Array.from({ length: n }, (_, i) => i < now ? '<i class="done"></i>' : i === now ? '<i class="now"><b></b></i>' : '<i></i>').join('');
+}
+function renderStory() {
+  const G = GUIDES[state.guide], s = G.steps[state.step], n = G.steps.length, i = state.step;
+  const count = `${String(i + 1).padStart(2, '0')} / ${String(n).padStart(2, '0')}`;
+  const saved = state.saved.has(state.guide);
+  const body = $('#storyBody');
+  state.tipHidden = state.tipHidden && !!s.tip;
+  if (i === 0 || s.clip) {
+    // hi-fi step (Figma 727:79); Leg Press steps play their section of the form video
+    body.className = 's-hi' + (s.clip ? ' on-video' : '') + (state.tipHidden || !s.tip ? ' tip-hidden' : '');
+    body.style.cssText = 'position:absolute;inset:0';
+    body.innerHTML = `
+      <div class="abs clip">${s.clip
+        ? `<video src="${s.clip}.mp4" poster="${s.clip}.jpg" autoplay muted loop playsinline aria-label="${s.title}: form clip"></video>`
+        : ''}</div>
+      ${s.clip ? '<div class="abs scrim"></div>' : ''}
+      <div class="abs time">9:41</div>
+      <div class="abs progress" style="--dur:${s.dur || 4}s">${progress(n, i)}</div>
+      <div class="abs label count">${count}</div>
+      <div class="abs fade"></div>
+      <div class="tapzones"><button aria-label="Previous step" data-step="-1"></button><button aria-label="Next step" data-step="1"></button></div>
+      <button class="hit" style="left:350px;top:66px" data-close aria-label="Close">${ICON.close}</button>
+      <div class="abs caption s-cap" style="left:16px;top:635px">${G.machine}</div>
+      <div class="abs s-title" style="left:16px;top:653px;width:320px;font-weight:500;font-size:20px;line-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</div>
+      <button class="hit save" style="left:345px;top:649px" aria-label="Save" aria-pressed="${saved}">${ICON.save(saved)}</button>
+      <button class="abs" data-mascot aria-label="Show tip" style="left:12px;top:695px;width:111px;height:115px"><img src="assets/mascot-line.svg" alt="" style="width:111px;height:114.6px;display:block"></button>
+      <button class="bubble" data-tip style="left:116px;top:695px;width:258px;height:114px;text-align:left" aria-label="Next step">
+        <span style="display:block;width:223px">${s.tip || ''}</span>
+        <img class="chev" src="assets/bubble-chevron.svg" alt="">
+      </button>`;
+  } else {
+    // low-fi steps (Figma 727:118 / 727:149)
+    body.className = 's-lo' + (state.tipHidden || !s.tip ? ' tip-hidden' : '');
+    body.style.cssText = 'position:absolute;inset:0';
+    body.innerHTML = `
+      <div class="abs time">9:41</div>
+      <div class="abs progress">${progress(n, i)}</div>
+      <div class="abs label count">${count}</div>
+      <div class="abs ph"><svg width="358" height="380" aria-hidden="true"><line x1="0" y1="0" x2="358" y2="380" stroke="#888"/><line x1="358" y1="0" x2="0" y2="380" stroke="#888"/></svg><span>Step clip · loops until you tap</span></div>
+      <div class="tapzones"><button aria-label="Previous step" data-step="-1"></button><button aria-label="Next step" data-step="1"></button></div>
+      <button class="hit" style="left:350px;top:66px;color:#fff" data-close aria-label="Close">${ICON.close}</button>
+      <div class="abs cap">${G.exercise} · ${G.focus}</div>
+      <div class="abs title">${s.title}</div>
+      ${s.tip ? `<button class="bubble" data-tip aria-label="Next step">${s.tip}</button>` : ''}
+      <button class="abs mascot" data-mascot aria-label="Show tip">mascot</button>
+      <button class="hit save" style="left:350px;top:780px;color:#fff" aria-label="Save" aria-pressed="${saved}">${ICON.save(saved)}</button>`;
+  }
+}
+function step(d) {
+  const n = GUIDES[state.guide].steps.length, next = state.step + d;
+  if (next < 0) return;
+  if (next >= n) return go('end/' + state.guide);
+  go(`story/${state.guide}/${next + 1}`);
+}
+function renderEnd() {
+  const G = GUIDES[state.guide];
+  $('#endProgress').innerHTML = '<i></i>'.repeat(G.steps.length);
+  $('#endSteps').textContent = G.steps.length;
+  $('#endTitle').textContent = `You know the ${G.exercise === G.machine ? G.machine : G.exercise}`;
+  $('#logSets').hidden = !state.logging;
+  $('#endSave').textContent = state.saved.has(state.guide) ? 'Saved' : 'Save';
+}
+
+// ---------------------------------------------------------------- toast
+let toastTimer;
+function toast(text) {
+  $('#toastText').textContent = text; $('#toast').classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('on'), 2200);
+}
+function toggleSave() {
+  const k = state.guide; const on = !state.saved.has(k);
+  on ? state.saved.add(k) : state.saved.delete(k);
+  toast(on ? 'Saved to your library' : 'Removed from your library');
+  return on;
+}
+
+// ---------------------------------------------------------------- events
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button, a'); if (!t) return;
+  if (t.dataset.tap) { state.machine = t.dataset.tap; go('1a'); return; }
+  if (t.dataset.go === 'machine') { go(MACHINES[state.machine].screen); return; }
+  if (t.dataset.go) { go(t.dataset.go); return; }
+  if (t.dataset.start) { state.tipHidden = false; go(`story/${t.dataset.start}/1`); return; }
+  if (t.id === 'startEx') { state.tipHidden = false; go(`story/${state.exercise}/1`); return; }
+  if (t.classList.contains('chip')) { $$('.chip', t.parentElement).forEach((c) => c.setAttribute('aria-pressed', c === t)); return; }
+  if (t.classList.contains('card')) {
+    state.exercise = t.dataset.ex;
+    $$('.card').forEach((c) => c.setAttribute('aria-pressed', c === t));
+    $('#startEx').textContent = 'Start ' + GUIDES[state.exercise].exercise; return;
+  }
+  if (t.dataset.step) { step(+t.dataset.step); return; }
+  if ('close' in t.dataset) { go(GUIDES[state.guide].machine === 'Leg Press' ? '1b' : '1b2'); return; }
+  if ('tip' in t.dataset) { step(1); return; }
+  if ('mascot' in t.dataset) { state.tipHidden = !state.tipHidden; $('#storyBody').classList.toggle('tip-hidden', state.tipHidden); return; }
+  if (t.classList.contains('save')) {
+    if (!$('[data-screen="story"]').classList.contains('on')) state.guide = state.machine === 'smith' ? state.exercise : 'legpress';
+    const on = toggleSave(); t.setAttribute('aria-pressed', on); t.innerHTML = ICON.save(on); return;
+  }
+  if (t.id === 'endSave') { toggleSave(); renderEnd(); return; }
+  if (t.id === 'logSets') { toast('Logging comes next in the prototype'); return; }
+});
+// hold to pause the step clip
+let holdTimer;
+document.addEventListener('pointerdown', (e) => {
+  if (!e.target.closest('.tapzones')) return;
+  holdTimer = setTimeout(() => { $('#storyBody').classList.add('paused'); $('#storyBody video')?.pause(); }, 220);
+});
+document.addEventListener('pointerup', (e) => {
+  clearTimeout(holdTimer);
+  const body = $('#storyBody');
+  if (body.classList.contains('paused')) { body.classList.remove('paused'); $('video', body)?.play(); e.target.closest('.tapzones') && document.addEventListener('click', (ev) => ev.stopPropagation(), { capture: true, once: true }); }
+});
+document.addEventListener('keydown', (e) => {
+  if (!$('[data-screen="story"]').classList.contains('on')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); step(1); }
+  if (e.key === 'ArrowLeft') step(-1);
+  if (e.key === 'Escape') $('[data-close]').click();
+});
+$('#logging').addEventListener('change', (e) => { state.logging = e.target.checked; renderEnd(); });
+
+// ---------------------------------------------------------------- fit the 390 x 844 design to the window
+function fit() {
+  const small = innerWidth <= 500;
+  const s = small ? Math.min(innerWidth / 390, innerHeight / 844) : Math.min(1, (innerHeight - 48) / 844);
+  $('#device').style.transform = `scale(${s})`;
+  $('#device').style.margin = small ? '0' : `${(844 * s - 844) / 2}px ${(390 * s - 390) / 2}px`;
+}
+addEventListener('resize', fit); fit();
+route();
+</script>
+</body>
+</html>
