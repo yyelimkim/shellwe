@@ -204,13 +204,15 @@
   <nav class="panel" aria-label="Prototype">
     <h2>Tap a sticker</h2>
     <div class="sticker"><button data-tap="legpress">Leg Press</button><button data-tap="smith">Smith Machine</button></div>
-    <h2>First tap</h2>
-    <a href="#1b">1b · Machine page (one exercise)</a>
-    <a href="#1b2" class="hifi">1b′ · Several exercises</a>
-    <a href="#story/rdl/1" class="hifi">1c · Story step 1 of 5</a>
-    <a href="#story/legpress/2">1d · Leg Press step 2 of 4</a>
-    <a href="#story/legpress/4">1e · Leg Press step 4 of 4</a>
-    <a href="#end/legpress">1f · End card</a>
+    <h2>Leg Press</h2>
+    <a href="#1b">Machine page</a>
+    <a href="#story/legpress/1" class="hifi">Story step 1 of 3</a>
+    <a href="#story/legpress/2" class="hifi">Story step 2 of 3</a>
+    <a href="#story/legpress/3" class="hifi">Story step 3 of 3</a>
+    <a href="#end/legpress">End card</a>
+    <h2>Smith Machine</h2>
+    <a href="#1b2" class="hifi">Machine page</a>
+    <a href="#story/rdl/1" class="hifi">RDL step 1 of 5</a>
     <h2>State</h2>
     <label><input type="checkbox" id="logging"> Logging on</label>
     <h2>Gestures</h2>
@@ -228,8 +230,7 @@ const GUIDES = {
   legpress: { machine: 'Leg Press Machine', exercise: 'Leg Press', focus: 'Quads', steps: [
     { title: 'Keep a slight bend at the top', tip: 'Keep a slight bend at the top. Don’t lock your knees.', clip: 'assets/legpress/step-1', dur: 2.57 },
     { title: 'Lower to 90°, knees over toes', tip: 'Lower to 90°. Keep your knees over your toes.', clip: 'assets/legpress/step-2', dur: 5.1 },
-    { title: 'Lower back flat on the pad', tip: 'Keep your lower back flat on the pad.', clip: 'assets/legpress/step-3', dur: 2.97 },
-    { title: 'Push through your heels', tip: 'Push through your heels, then lower slowly.', clip: 'assets/legpress/step-4', dur: 4.13 },
+    { title: 'Push through your heels', tip: 'Push through your heels, then lower slowly.', clip: 'assets/legpress/step-3', dur: 4.13 },
   ] },
   rdl: { machine: 'Smith Machine', exercise: 'Romanian Deadlifts', focus: 'Hamstrings', steps: [
     { title: 'Romanian Deadlifts', tip: 'Set the bar at mid-thigh. Feet hip-width apart.' },
