@@ -246,27 +246,27 @@ const MACHINES = {
 };
 const GUIDES = {
   legpress: { machine: 'Leg Press', exercise: 'Leg Press', focus: 'Quads', steps: [
-    { title: 'Leg Press', tip: 'Keep a slight bend at the top. Locking your knees puts the weight on your joints.', clip: 'assets/legpress/step-1', dur: 2.57 },
-    { title: 'Lower to 90°, knees over toes', tip: 'Don’t let your knees cave in. Going deeper than 90° pulls your hips off the seat.', clip: 'assets/legpress/step-2', dur: 5.1 },
-    { title: 'Lower back flat on the pad', tip: 'If it starts to curl up, you’ve gone too deep.', clip: 'assets/legpress/step-3', dur: 2.97 },
-    { title: 'Push through your heels', tip: null, clip: 'assets/legpress/step-4', dur: 4.13 },
+    { title: 'Keep a slight bend at the top', tip: 'Keep a slight bend at the top. Don’t lock your knees.', clip: 'assets/legpress/step-1', dur: 2.57 },
+    { title: 'Lower to 90°, knees over toes', tip: 'Lower to 90°. Keep your knees over your toes.', clip: 'assets/legpress/step-2', dur: 5.1 },
+    { title: 'Lower back flat on the pad', tip: 'Keep your lower back flat on the pad.', clip: 'assets/legpress/step-3', dur: 2.97 },
+    { title: 'Push through your heels', tip: 'Push through your heels, then lower slowly.', clip: 'assets/legpress/step-4', dur: 4.13 },
   ] },
   rdl: { machine: 'Smith Machine', exercise: 'Romanian Deadlifts', focus: 'Hamstrings', steps: [
-    { title: 'Romanian Deadlifts', tip: 'Set the bar at mid-thigh. Stand close with your feet hip-width apart, then twist the bar to unhook it.' },
+    { title: 'Romanian Deadlifts', tip: 'Set the bar at mid-thigh. Feet hip-width apart.' },
     { title: 'Push your hips back and keep the bar close', tip: 'Soft knees. Your back stays flat.' },
     { title: 'Lower until you feel your hamstrings stretch', tip: 'For most people that is just below the knees.' },
     { title: 'Squeeze your glutes to stand back up', tip: 'Stand tall at the top, don’t lean back.' },
     { title: 'Twist the bar to hook it back on', tip: null },
   ] },
   squat: { machine: 'Smith Machine', exercise: 'Squats', focus: 'Quads', steps: [
-    { title: 'Squats', tip: 'Set the bar just below shoulder height. Step under it so it rests on your upper back.' },
+    { title: 'Squats', tip: 'Set the bar below shoulder height. Rest it on your upper back.' },
     { title: 'Feet a little in front of the bar, shoulder-width apart', tip: 'Toes turned out slightly.' },
     { title: 'Twist the bar to unhook it', tip: 'Brace your core before you move.' },
     { title: 'Sit down until your thighs are about level', tip: 'Knees follow your toes, not inward.' },
     { title: 'Drive up through your whole foot', tip: null },
   ] },
   bench: { machine: 'Smith Machine', exercise: 'Bench Press', focus: 'Chest', steps: [
-    { title: 'Bench Press', tip: 'Roll a flat bench under the bar so it lines up with the middle of your chest.' },
+    { title: 'Bench Press', tip: 'Line the bench up so the bar is over your mid-chest.' },
     { title: 'Grip a little wider than your shoulders', tip: 'Wrists straight, thumbs around the bar.' },
     { title: 'Twist the bar to unhook it', tip: 'Shoulder blades pinched back into the bench.' },
     { title: 'Lower to your mid-chest', tip: 'Elbows at about 45°, not flared out.' },
@@ -326,11 +326,11 @@ function renderStory() {
       <div class="tapzones"><button aria-label="Previous step" data-step="-1"></button><button aria-label="Next step" data-step="1"></button></div>
       <button class="hit" style="left:350px;top:66px" data-close aria-label="Close">${ICON.close}</button>
       <div class="abs caption s-cap" style="left:16px;top:635px">${G.machine}</div>
-      <div class="abs s-title" style="left:16px;top:653px;width:320px;font-weight:500;font-size:20px;line-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</div>
+      <div class="abs s-title" style="left:16px;top:653px;width:320px;font-weight:500;font-size:20px;line-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${G.exercise}</div>
       <button class="hit save" style="left:345px;top:649px" aria-label="Save" aria-pressed="${saved}">${ICON.save(saved)}</button>
       <button class="abs" data-mascot aria-label="Show tip" style="left:12px;top:695px;width:111px;height:115px"><img src="assets/mascot-line.svg" alt="" style="width:111px;height:114.6px;display:block"></button>
       <button class="bubble" data-tip style="left:116px;top:695px;width:258px;height:114px;text-align:left" aria-label="Next step">
-        <span style="display:block;width:223px">${s.tip || ''}</span>
+        <span style="display:block;width:223px;font-size:16px;line-height:22px">${s.tip || ''}</span>
         <img class="chev" src="assets/bubble-chevron.svg" alt="">
       </button>`;
   } else {
