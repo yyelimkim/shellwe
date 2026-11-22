@@ -145,6 +145,12 @@
   .s-end .b3 { background: var(--accent); color: var(--ink); }
 
   /* toast */
+  /* screen-to-screen loader: a translucent hex wave sweeps top to bottom */
+  .loader { position: absolute; inset: 0; z-index: 6; background: var(--stage); opacity: 0; pointer-events: none; transition: opacity .16s ease; }
+  .loader.on { opacity: 1; pointer-events: auto; }
+  .loader .time { color: var(--on-stage); }
+  .loader svg { position: absolute; inset: 0; }
+  .loader path { fill: #fff; stroke: #fff; stroke-width: 7; stroke-linejoin: round; opacity: 0; }
   .toast { position: absolute; left: 16px; right: 16px; bottom: 28px; z-index: 5; display: flex; align-items: center; justify-content: space-between;
            padding: 14px 16px; border-radius: var(--radius-md); background: var(--inverse); color: #fff; font-size: 15px; line-height: 20px;
            transform: translateY(calc(100% + 40px)); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
@@ -216,6 +222,7 @@
       </div>
     </section>
 
+    <div class="loader" id="loader" aria-hidden="true"><div class="abs time">9:41</div><svg width="390" height="844" viewBox="0 0 390 844"></svg></div>
     <div class="toast" id="toast" role="status"><span id="toastText">Saved to your library</span><u>View</u></div>
   </div></div>
 
@@ -282,8 +289,41 @@ const ICON = {
 
 // ---------------------------------------------------------------- routing (#1b, #1b2, #story/<guide>/<n>, #end/<guide>)
 function show(id) {
-  $$('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === id));
+  const cur = $('.screen.on')?.dataset.screen;
+  const swap = () => $$('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === id));
   $$('.panel a').forEach((a) => a.toggleAttribute('aria-current', false));
+  if (cur && cur !== id) load(swap); else swap();
+}
+
+// ---------------------------------------------------------------- loader between screens
+// Flat-top hexagons (55 x 48) on a staggered grid; each one fades in and out as a wave passes from top to bottom.
+const HEX = (() => {
+  const w = 55, h = 48, dx = 46, dy = 53, out = [];
+  for (let c = -1; c * dx < 390 + w; c++) for (let r = -1; r * dy < 844 + h; r++) {
+    const cx = c * dx + 14, cy = r * dy + (c % 2 ? dy / 2 : 0) + 20, a = w / 2 - 4, b = h / 2 - 4;
+    const pts = [[-a, 0], [-a / 2, -b], [a / 2, -b], [a, 0], [a / 2, b], [-a / 2, b]].map(([x, y]) => `${(cx + x).toFixed(1)},${(cy + y).toFixed(1)}`);
+    out.push({ cy, d: 'M' + pts.join('L') + 'Z' });
+  }
+  return out;
+})();
+$('#loader svg').innerHTML = HEX.map((x) => `<path d="${x.d}"/>`).join('');
+let loading = [], loadTimers = [];
+function load(swap) {
+  const el = $('#loader'), paths = $$('path', el);
+  loading.forEach((a) => a.cancel()); loadTimers.forEach(clearTimeout);
+  el.classList.add('on');
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SWEEP = 620, EACH = 520;
+  loading = still ? [] : paths.map((p, i) => {
+    const peak = Math.random() < 0.3 ? 0 : 0.13 + Math.random() * 0.09;   // translucent and patchy, like the sketch
+    const delay = 120 + (HEX[i].cy / 844) * SWEEP + Math.random() * 180;
+    return p.animate([{ opacity: 0 }, { opacity: peak, offset: 0.35 }, { opacity: peak * 0.8, offset: 0.65 }, { opacity: 0 }],
+      { duration: EACH, delay, easing: 'ease-in-out', fill: 'both' });
+  });
+  loadTimers = [
+    setTimeout(swap, 160),                                     // switch screens once the stage covers the old one
+    setTimeout(() => el.classList.remove('on'), still ? 260 : 120 + SWEEP + 180 + EACH - 160),
+  ];
 }
 function route() {
   const [name, g, n] = (location.hash.slice(1) || MACHINES[state.machine].screen).split('/');
