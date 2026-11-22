@@ -4,16 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Shellwe — Leg Press</title>
+  <link rel="icon" type="image/svg+xml" href="assets/brand/shellwe-logomark.svg">
+  <!-- Non-blocking: if Google Fonts is slow, the page still loads and the tip falls back to the system font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;600&display=swap" media="print" onload="this.media='all'">
   <style>
     html, body { margin: 0; height: 100%; background: #f2f2f2; font-family: system-ui, sans-serif; overflow: hidden; }
     canvas { display: block; touch-action: none; cursor: grab; }
     canvas:active { cursor: grabbing; }
     #msg { position: fixed; inset: 0; display: grid; place-items: center; color: #666; font-size: 14px; pointer-events: none; text-align: center; padding: 16px; }
-    #credit { position: fixed; left: 12px; bottom: 10px; font-size: 11px; color: #888; }
+    #credit { position: fixed; right: 12px; bottom: 10px; font-size: 11px; color: #888; text-align: right; max-width: calc(100% - 140px); }
     #credit a { color: inherit; }
     #pick { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 4px; background: #fff; border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     #pick a { padding: 6px 12px; border-radius: 999px; font-size: 13px; color: #555; text-decoration: none; white-space: nowrap; }
     #pick a[aria-current] { background: #111; color: #fff; }
+    #brand { position: fixed; top: 14px; left: 16px; display: block; line-height: 0; }
+    #brand img { height: 36px; width: auto; }
+    @media (max-width: 560px) { #pick { top: 62px; } }
+
+    /* Mascot + explain bubble (Figma 707:305, 708:311) */
+    #guide { position: fixed; left: 16px; bottom: 16px; width: 300px; max-width: calc(100% - 32px); pointer-events: none; }
+    #guide-bubble { position: relative; width: 100%; aspect-ratio: 2138 / 779.448; margin: 0 0 4px; border: 0; padding: 0; background: none; text-align: left; cursor: pointer; pointer-events: auto; }
+    #guide-bubble img { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #guide-bubble p { position: absolute; inset: 0 0 15% 0; margin: 0; padding: 10px 14px; display: flex; align-items: center;
+      font: 400 14px/20px "Host Grotesk", system-ui, sans-serif; color: #111; }
+    #guide-bubble[hidden] { display: none; }
+    #guide-mascot { display: block; width: 96px; height: auto; margin-left: 8px; border: 0; padding: 0; background: none; cursor: pointer; pointer-events: auto; }
+    #guide-mascot img { display: block; width: 96px; height: auto; }
+    #guide :focus-visible { outline: 2px solid #111; outline-offset: 2px; border-radius: 8px; }
   </style>
   <script type="importmap">
     { "imports": {
@@ -24,8 +41,18 @@
 </head>
 <body>
   <div id="msg">Loading…</div>
+  <a id="brand" href="./" aria-label="Shellwe home"><img src="assets/brand/shellwe-logo.svg?v=2" alt="ShellWe"></a>
   <nav id="pick"></nav>
   <div id="credit"></div>
+  <aside id="guide">
+    <button id="guide-bubble" type="button" aria-label="Hide tip">
+      <img src="assets/brand/bubble.svg" alt="">
+      <p id="guide-text" role="status"></p>
+    </button>
+    <button id="guide-mascot" type="button" aria-label="Show tip" aria-expanded="true">
+      <img src="assets/brand/mascot.svg" alt="Shellwe mascot">
+    </button>
+  </aside>
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -59,15 +86,23 @@
     const MODELS = {
       'leg-press': {
         name: 'Leg Press', url: 'models/leg-press/scene.gltf',
+        tip: 'This is the Leg Press. Drag to look at it from any side before you sit down.',
         credit: 'Based on “<a href="https://sketchfab.com/3d-models/leg-press-machine-99b9c28dd70d4131918d23f0b58cb14a" target="_blank" rel="noopener">Leg Press Machine</a>” by <a href="https://sketchfab.com/silentsheri" target="_blank" rel="noopener">silentsheri</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>',
       },
       'smith-machine': {
         name: 'Smith Machine', url: 'models/smith-machine/smith-machine.glb',
+        tip: 'The Smith Machine bar runs on rails, so it can only move straight up and down.',
         credit: 'Smith Machine model from SketchUp 3D Warehouse',
       },
       'lat-pulldown': {
         name: 'Lat Pulldown', url: 'models/lat-pulldown/lat-pulldown.glb',
+        tip: 'On the Lat Pulldown you sit with your thighs under the pads and pull the bar down.',
         credit: 'Lat Pulldown model from SketchUp 3D Warehouse',
+      },
+      'female': {
+        name: 'Figure', url: 'models/female/female-clothed.glb', lines: false, mono: false,
+        tip: 'This is the figure we use to show each movement. Drag to turn her around.',
+        credit: 'Based on “<a href="https://sketchfab.com/3d-models/female-base-mesh-b6389ae82f044dbe9945c4dad2cd72ae" target="_blank" rel="noopener">Female base mesh</a>” by <a href="https://sketchfab.com/drazenk" target="_blank" rel="noopener">Drazen</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; pose, clothing, shoes and eyes added',
       },
     };
     const id = MODELS[new URLSearchParams(location.search).get('m')] ? new URLSearchParams(location.search).get('m') : 'leg-press';
@@ -78,6 +113,19 @@
     document.getElementById('pick').innerHTML = Object.entries(MODELS)
       .map(([k, m]) => `<a href="?m=${k}"${k === id ? ' aria-current="page"' : ''}>${m.name}</a>`).join('');
     const msg = document.getElementById('msg');
+
+    // Mascot tip: tap the bubble to hide it, tap the mascot to bring it back
+    const bubble = document.getElementById('guide-bubble');
+    const mascotBtn = document.getElementById('guide-mascot');
+    document.getElementById('guide-text').textContent = MODEL.tip;
+    function setTip(open) {
+      bubble.hidden = !open;
+      mascotBtn.setAttribute('aria-expanded', String(open));
+      mascotBtn.setAttribute('aria-label', open ? 'Hide tip' : 'Show tip');
+    }
+    bubble.addEventListener('click', () => { setTip(false); mascotBtn.focus(); });
+    mascotBtn.addEventListener('click', () => setTip(bubble.hidden));
+    setTip(true);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -157,7 +205,16 @@
     const colorTarget = makeTarget(THREE.HalfFloatType);
     const normalTarget = makeTarget(THREE.UnsignedByteType);
     normalTarget.depthTexture = new THREE.DepthTexture(size.x, size.y);
-    const normalMat = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
+    // View-space normals in rgb; alpha 0.5 marks surfaces that opt out of lines (model attribute _NOLINE)
+    const normalMat = new THREE.ShaderMaterial({
+      side: THREE.DoubleSide,
+      vertexShader: `attribute float _noline; varying vec3 vN; varying float vF;
+        void main(){ vN = normalize(normalMatrix * normal); vF = _noline;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `varying vec3 vN; varying float vF;
+        void main(){ vec3 n = normalize(vN) * (gl_FrontFacing ? 1.0 : -1.0);
+          gl_FragColor = vec4(n * 0.5 + 0.5, vF > 0.5 ? 0.5 : 1.0); }`,
+    });
 
     const outlineMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -166,21 +223,26 @@
         texel: { value: new THREE.Vector2(1 / size.x, 1 / size.y) },
         near: { value: camera.near }, far: { value: camera.far },
         bg: { value: BG.clone() },
+        lines: { value: 1 },
       },
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
       fragmentShader: `
         #include <packing>
-        uniform sampler2D tColor, tNormal, tDepth; uniform vec2 texel; uniform float near, far; uniform vec3 bg;
+        uniform sampler2D tColor, tNormal, tDepth; uniform vec2 texel; uniform float near, far, lines; uniform vec3 bg;
         varying vec2 vUv;
         float viewZ(vec2 uv){ return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, near, far); }
         vec3 nrm(vec2 uv){ return normalize(texture2D(tNormal, uv).xyz * 2.0 - 1.0); }
         void main(){
           vec4 src = texture2D(tColor, vUv);   // machine + floor shadow over a transparent clear
           float zc = viewZ(vUv); vec3 nc = nrm(vUv);
+          float ac = texture2D(tNormal, vUv).a;
+          bool fc = ac > 0.25 && ac < 0.75;     // centre pixel opted out of lines
           float e = 0.0;
           vec2 offs[4]; offs[0]=vec2(1,0); offs[1]=vec2(-1,0); offs[2]=vec2(0,1); offs[3]=vec2(0,-1);
           for (int i = 0; i < 4; i++) {
             vec2 uv = vUv + offs[i] * texel;
+            float an = texture2D(tNormal, uv).a;
+            if (fc && an > 0.25 && an < 0.75) continue;   // both sides opted out: no line
             float z = viewZ(uv);
             // silhouette: only the nearer side draws, so the line stays 1px wide
             if (z > zc) e = max(e, smoothstep(0.012, 0.03, (z - zc) / zc));
@@ -191,7 +253,7 @@
           #include <tonemapping_fragment>
           // background is added after tone mapping so it keeps its exact colour
           gl_FragColor.rgb = gl_FragColor.rgb + bg * (1.0 - src.a);
-          gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.0), e);
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.0), e * lines);
           #include <colorspace_fragment>
         }`,
       depthTest: false, depthWrite: false,
@@ -199,6 +261,7 @@
     const quadScene = new THREE.Scene();
     const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), outlineMat));
+    if (MODEL.lines === false) outlineMat.uniforms.lines.value = 0;   // soft-shaded figures skip the ink lines
 
     function resizeTargets() {
       renderer.getDrawingBufferSize(size);
@@ -246,7 +309,7 @@
       gltf.scene.traverse((o) => {
         if (!o.isMesh) return;
         meshCount++;
-        o.material = Array.isArray(o.material) ? o.material.map(toMono) : toMono(o.material);
+        if (MODEL.mono !== false) o.material = Array.isArray(o.material) ? o.material.map(toMono) : toMono(o.material);
       });
       const model = meshCount > 200 ? mergeByMaterial(gltf.scene) : gltf.scene;
       model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
@@ -265,8 +328,8 @@
       const h = fitted.getSize(new THREE.Vector3()).y;
       const radius = fitted.getBoundingSphere(new THREE.Sphere()).radius;
       const fov = THREE.MathUtils.degToRad(camera.fov);
-      const dist = radius / Math.sin(Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * camera.aspect)) / 2) * 1.05;
-      controls.target.set(0, h * 0.45, 0);
+      const dist = radius / Math.sin(Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * camera.aspect)) / 2) * 1.1;
+      controls.target.set(0, h * 0.5, 0);
       camera.position.copy(controls.target).add(new THREE.Vector3(0.6, 0.35, 0.72).normalize().multiplyScalar(dist));
       msg.remove();
     }, undefined, (err) => {
